@@ -44,7 +44,14 @@ void draw() {
   background(165,202,214);
   player.growPlayer();
   if(player.shield) {
-    player.renderShield();
+    if (player.contact) {
+      stroke(24,242,195);
+      player.renderShield();
+      player.contact = false;
+    } else {
+      player.renderShield();
+    }
+    stroke(0,0,0);
   }
   
   if (spawnRate == spawnCycle) {
@@ -82,6 +89,9 @@ class Player {
   int score;
   int lives;
   boolean growthTrigger;
+  boolean contact;
+  boolean damageContact;
+  boolean pointContact;
   
   Player() {
     x = 400;
@@ -91,6 +101,9 @@ class Player {
     radius = objectSize * 3;
     shield = false;
     growthTrigger = true;
+    contact = false;
+    damageContact = false;
+    pointContact = false;
   }
   
   void toggleShield() {
@@ -98,12 +111,24 @@ class Player {
   }
   
   void render() {
+    if (damageContact) {
+      background(65,60,214);
+      damageContact = false;
+    } else if (pointContact) {
+      stroke(150,221,242);
+      pointContact = false;
+    }
     fill(0,191,255);
     ellipse(x, y,radius,radius);
+    stroke(0,0,0);
   }
   
   void renderShield() {
-    fill(156,230,255);
+    if (contact) {
+      fill(24,242,130);
+    } else {
+      fill(156,230,255);
+    }
     ellipse(x, y,radius+20,radius+20);
   }
   
@@ -272,10 +297,12 @@ void handleContact() {
       if (collision(player.x, stuff.get(i).x, player.y, stuff.get(i).y)) {
         if (stuff.get(i).type == "point") {
           player.score += stuff.get(i).value;
+          player.pointContact = true;
           stuff.remove(i);
           i--;
         } else if (stuff.get(i).type == "bomb") {
           player.lives -= stuff.get(i).value;
+          player.damageContact = true;
           stuff.remove(i);
           i--;
         }
@@ -284,6 +311,9 @@ void handleContact() {
   } else {
     for(int i = 0; i < stuff.size(); i++) {
       if (collision2(player.x, stuff.get(i).x, player.y, stuff.get(i).y)) {
+        if (stuff.get(i).type == "bomb") {
+          player.contact = true;
+        }
         stuff.remove(i);
       }
     }
