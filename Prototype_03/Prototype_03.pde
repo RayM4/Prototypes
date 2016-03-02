@@ -1,3 +1,5 @@
+Direction directions;
+
 int sizeX;
 int sizeY;
 int gridSize;
@@ -9,6 +11,8 @@ int startX;
 int startY;
 int lives;
 ArrayList<Enemy> enemies;
+ArrayList<Card> deck;
+ArrayList<Card> hand;
 int numOfBlocks;
 int numOfLava;
 int numOfEnemies;
@@ -17,10 +21,17 @@ boolean power;
 int winX = 0;
 int winY = 0;
 int timer = 0;
+int timer2 = 0;
 int nomX = 0;
 int nomY = 0;
-
-//enum Direction {NORTH, SOUTH, WEST, EAST};
+boolean dead = false;
+int sizeOfDeck;
+int handSize;
+int cardWidth = 120;
+int cardHeight = 85;
+boolean win = false;
+boolean lock = false;
+Card current = new Card();
 
 void setup() {
   size(800, 600);
@@ -36,18 +47,42 @@ void setup() {
   offset = 40;
   objectSize = 40;
   power = false;
+  sizeOfDeck = 30;
+  handSize = 5;
   
   enemies = new ArrayList<Enemy>(); //ref gridIdx-5
+  deck = new ArrayList<Card>();
+  hand = new ArrayList<Card>();
+  generateDeck(sizeOfDeck); //genDeck
   map = new Map(sizeX, sizeY);
   map.genMap();
   player = new Player(startX,startY);
+  drawHand();
+}
+
+void test(Direction d) {
+  if (d == directions.UP) {
+    print("up");
+  } else{
+    print("asasas");
+  }
 }
 
 void resetGame() {
+  lives = 3;
+  timer = 0;
+  timer2 = 0;
+  current = new Card();
+  win = false;
+  power = false;
   map.resetGrid();
-  enemies = new ArrayList<Enemy>();
+  enemies = new ArrayList<Enemy>(); //clearEnemy() //later
+  hand = new ArrayList<Card>(); //fix later
+  clearDeck();
   map.genMap();
   player = new Player(startX,startY);
+  generateDeck(sizeOfDeck);
+  drawHand();
 }
 
 void draw() {
@@ -66,11 +101,39 @@ void draw() {
     drawEat();
   }
   if (hasWon()) {
+    win = true;
+  }
+  
+  for (Card c : hand) {
+    c.display();
+  }
+  //draw activate power button
+  fill(10,247,152);
+  rect(750,0, 50,50);
+  textSize(20);
+  fill(0,0,0);
+  text("POW", 755, 30);
+  
+  //draw reshuffle button
+  fill(187,90,232);
+  rect(750,50, 50,50);
+  textSize(20);
+  fill(0,0,0);
+  text("RS", 755, 80);
+  
+  if (lock && !win && timer == 0) {
+    current.effect();
+  }
+  
+  if(win) {
     textSize(80);
     fill(72,24,82);
     text("You Win!", 200, 300);
     textSize(40);
     text("Press R to reset", 200, 400);
+  }
+  if(timer2 > 0) {
+    timer2--;
   }
 }
 
@@ -208,8 +271,7 @@ class Player {
     map.grid[x][y] =1;
   }
   
-  //void move(Direction d) {
-  void move(int d) {  
+  void move(int d) {  //deprecated
     //if (d.equals(WEST) && x != 0) {
     if (d == 0 && x != 0) { //left
       if (map.grid[x-1][y] == 0) {
@@ -246,7 +308,44 @@ class Player {
     }
   }
   
-  void powerMove(int d) {
+  //overload with directions remove other one maybe
+  void move(Direction d) {
+    if (d == directions.LEFT && x != 0) { //left
+      if (map.grid[x-1][y] == 0) {
+        map.grid[x][y] = 0;
+        x = x-1;
+        map.grid[x][y] = 1;
+      } else if (map.grid[x-1][y] > 3) {
+        player.dies(); //flash red?
+      } 
+    } else if (d == directions.RIGHT && x != sizeX-1) { //right
+      if (map.grid[x+1][y] == 0) {
+        map.grid[x][y] = 0;
+        x = x+1;
+        map.grid[x][y] = 1;
+      } else if (map.grid[x+1][y] > 3) {
+        player.dies();
+      }
+    } else if (d == directions.UP && y != 0) { //up
+      if (map.grid[x][y-1] == 0) {
+        map.grid[x][y] = 0;
+        y = y-1;
+        map.grid[x][y] = 1;
+      } else if (map.grid[x][y-1] > 3) {
+        player.dies();
+      }
+    } else if (d == directions.DOWN && y != sizeY-1) { //down
+      if (map.grid[x][y+1] == 0) {
+      map.grid[x][y] = 0;
+      y = y+1;
+      map.grid[x][y] = 1;
+      } else if (map.grid[x][y+1] > 3) {
+        player.dies();
+      }
+    }
+  }
+  
+  void powerMove(int d) { //deprecated
     if(power) { //just incase
       if (d == 0 && x != 0) { //left
         map.grid[x][y] = 0;
@@ -267,6 +366,27 @@ class Player {
     power = false;
   }
   
+  void powerMove(Direction d) {
+    if(power) { //just incase
+      if (d == directions.LEFT && x != 0) { //left
+        map.grid[x][y] = 0;
+        x = x-1;
+      } else if (d == directions.RIGHT && x != sizeX-1) { //right
+        map.grid[x][y] = 0;
+        x = x+1;
+      } else if(d == directions.UP && y != 0) { //up
+        map.grid[x][y] = 0;
+        y = y-1;
+      } else if (d == directions.DOWN && y != sizeY-1) { //down
+        map.grid[x][y] = 0;
+        y = y+1;
+      }
+      if(map.grid[x][y] != 0) {eat(x,y);}
+      map.grid[x][y] = 1;
+    }
+    //power = false;
+  }
+  
   void resetPosition() {
     map.grid[x][y] = 0;
     x = startX;
@@ -278,6 +398,7 @@ class Player {
     lives = lives - 1;
     fill(255,0,0);
     rect(0,0, 800, 600);
+    dead = true;
     resetPosition();
   }
   
@@ -347,32 +468,194 @@ class Enemy {
     }
   }
 }
+//command cards
+class Card {
+  String type; //normal
+  int moveNum;
+  Direction moveDir;
+  int handPos;
+  boolean pow;
+  
+  Card(String t) {
+    type = t;
+    moveNum = 0;
+    moveDir = directions.STAY;
+    handPos = -1;
+    pow = false;
+  }
+  
+  Card() {
+    type = "none";
+    moveNum = 0;
+    moveDir = directions.STAY;
+    handPos = -1;
+    pow = false;
+  }
+  
+  Card(String t, int m, Direction d) {
+    type = t;
+    moveNum = m;
+    moveDir = d;
+    handPos = -1;
+    pow = false;
+  }
+  
+  void effect() {
+    lock = true;
+    
+    if(pow) {
+      power = true;
+    }
+    /*
+    for (int i = 0; i < moveNum; i++) {
+      if (!dead) {
+        if (power) {
+          player.powerMove(moveDir);
+        } else {
+          player.move(moveDir);
+        }
+      } else {
+        i = 100; //break
+        dead = false;
+      }
+    }
+    
+    power = false;*/
+    if (!dead && moveNum > 0) {
+      if (power) {
+        player.powerMove(moveDir);
+        moveNum--;
+      } else {
+        player.move(moveDir);
+        moveNum--;
+      }
+      timer2 = 20;
+      moveEnemies();
+    } else {
+      moveNum = 0;
+      dead = false;
+      power = false;
+      lock = false;
+    }
+  }
+  
+  String generateText() {
+    String text = "" + moveNum;
+    
+    if (moveDir == directions.UP) {
+      text = text + " UP";
+    } else if (moveDir == directions.LEFT) {
+      text = text + " LEFT";
+    } else if (moveDir == directions.RIGHT) {
+      text = text + " RIGHT";
+    } else if (moveDir == directions.DOWN) {
+      text = text + " DOWN";
+    }
+    
+    return text;
+  }
+  
+  void display() {
+      //int x = getCardX(handPos);
+      int x = 600;
+      int y = getCardY(handPos);
+      if (pow) {
+        fill(10,247,152);
+      } else {
+        fill (23,176,227);
+      }
+      rect(x,y,cardWidth,cardHeight);
+      textSize(15);
+      fill(0,0,0);
+      if (pow) {
+        text("POWER", x+30, y+20);
+      }
+      text(generateText(), x+30, y+55);
+  }
+}
+
+//turns halfway, not using yet
+class turnCard extends Card {
+  int move2;
+  Direction dir2;
+  
+  turnCard() {
+    type = "turn";
+    moveNum = 0;
+    move2 = 0;
+    moveDir = directions.STAY;
+    dir2 = directions.STAY;
+    handPos = -1;
+    pow = false;
+  }
+  
+  turnCard(String t, int m1, int m2, Direction d1, Direction d2) {
+    type = t;
+    moveNum = m1;
+    move2 = m2;
+    moveDir = d1;
+    dir2 = d2;
+    handPos = -1;
+    pow = false;
+  }
+  
+  void effect() {
+    boolean notDied = true;
+    for (int i = 0; i < moveNum; i++) {
+      if (!dead) {
+        player.move(moveDir);
+      } else {
+        i = 100;
+        notDied = false;
+        dead = false;
+      }
+    }
+    if (notDied) {
+      for (int i = 0; i < move2; i++) { 
+        if (!dead) {
+          player.move(dir2);
+        } else {
+          i = 100;
+          notDied = false;
+          dead = false;
+        }
+      }
+    }
+  }
+  
+  String generateText() {
+    String text = "";
+    
+    return text;
+  }
+  
+}
 
 void keyPressed() {
   if(key == CODED) {
     if(keyCode == LEFT) {
       if (power) {
-        player.powerMove(0);
+        player.powerMove(directions.LEFT);
       } else {
-        player.move(0);
+        player.move(directions.LEFT);
       }
     } else if (keyCode == RIGHT) {
       if (power) {
-        player.powerMove(1);
+        player.powerMove(directions.RIGHT);
       } else {
-        player.move(1);
+        player.move(directions.RIGHT);
       }
     } else if (keyCode == UP) {
       if (power) {
-        player.powerMove(2);
+        player.powerMove(directions.UP);
       } else {
-        player.move(2);
+        player.move(directions.UP);
       }
     } else if (keyCode == DOWN) {
       if (power) {
-        player.powerMove(3);
+        player.powerMove(directions.DOWN);
       } else {
-        player.move(3);
+        player.move(directions.DOWN);
       }
     }
     moveEnemies();
@@ -409,9 +692,142 @@ void eat(int x, int y) {
   nomY = y * gridSize;
 }
 
+void generateDeck(int deckSize) {
+  for (int i = 0; i < deckSize; i++) {
+    Card card = generateCard("normal");
+    deck.add(card);
+  }
+}
+
+Card generateCard(String cardType) {
+  int moveNum = int(random(1,4));
+  int powChance = int(random(0, 4));
+  Card card = new Card(cardType, moveNum, randomDir());
+  if (powChance == 1) {
+    card.pow = true;
+  }
+  return card;
+}
+
+void clearDeck() {
+  /*
+  for (int i = 0; i < deck.size(); i++) {
+    
+  }*/
+  //for now
+  deck = new ArrayList<Card>();
+}
+
+void drawHand() {
+  int i = 0;
+  while(i < handSize) {
+    drawCard(i);
+    i++;
+  }
+}
+
+void playCard(int handIdx) {
+  current = hand.get(handIdx);
+  current.effect();
+  //hand.get(handIdx).effect();
+  //some animation
+  hand.remove(handIdx);
+  for(int i = 0; i < hand.size(); i++) {
+    hand.get(i).handPos = i;
+  }
+  drawCard(hand.size()); //should work
+}
+
+void drawCard(int i) {
+  hand.add(deck.get(deck.size()-1));
+  hand.get(hand.size() - 1).handPos = i;
+  deck.remove(deck.size()-1);
+  Card card = generateCard("normal");
+  deck.add(card);
+}
+/*
+int getCardX(int handIdx) {
+  switch(handIdx) {
+    case 0:
+    case 2:
+    case 4:
+      return 600;
+    case 1:
+    case 3:
+    case 5:
+      return 700;
+  }
+  return -1;
+}*/
+
+int getCardY(int handIdx) {
+  switch(handIdx) {
+    case 0:
+      return 50;
+    case 1:
+      return 150;
+    case 2:
+      return 250;
+    case 3:
+      return 350;
+    case 4:
+      return 450;
+  }
+  return -1;
+}
+
+Direction randomDir() {
+  int rand = int(random(-1, 4));
+  
+  switch(rand) {
+    case 0:
+      return directions.UP;
+    case 1:
+      return directions.DOWN;
+    case 2:
+      return directions.LEFT;
+    case 3:
+      return directions.RIGHT;
+  }
+  
+  return directions.STAY;
+}
+
+void mulligan() {
+  hand = new ArrayList<Card>();
+  drawHand();
+}
+
 void drawEat() {
   fill(0,0,0);
   textSize(30);
   text("nom", nomX, nomY);
   timer--;
+}
+
+void mousePressed() {
+  if (mouseX > 599 && mouseX < 720) {
+    if (mouseY > 49 && mouseY < 135) {
+      //card 0
+      playCard(0);
+    } else if (mouseY > 149 && mouseY < 235) {
+      //card 1
+      playCard(1);
+    } else if (mouseY > 249 && mouseY < 335) {
+      //card 2
+      playCard(2);
+    } else if (mouseY > 349 && mouseY < 435) {
+      //card 3
+      playCard(3);
+    } else if (mouseY > 449 && mouseY < 535) {
+      //card 4
+      playCard(4);
+    } 
+  } else if (mouseX > 745 && mouseX < 800 && mouseY > 0 && mouseY < 50) {
+    power = true;
+    moveEnemies();
+  } else if (mouseX > 745 && mouseX < 800 && mouseY > 50 && mouseY < 100) {
+    mulligan();
+    moveEnemies();
+  }
 }
