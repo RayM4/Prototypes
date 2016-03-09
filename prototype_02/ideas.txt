@@ -1,0 +1,21 @@
+Walls, moving walls?
+
+different types of bullets
+	ones that you need to avoid
+		ones that detract score
+		ones that break the wall
+	bigger bullets with more points
+	bullets that move in different patterns
+	bullets with power ups
+		such as making walls bigger
+		making it so there are no gaps for x time
+		make walls faster
+		show you the path that bullets will take
+	
+Instead of randomly generated make patterns
+	similar to bullet hell style games except in every direction
+	patterns will make your wall positions seems more important
+	
+Add 2 player support for those who cannot handle multitasking 4 walls
+
+Lots of possible ways to improve it

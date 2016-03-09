@@ -12,15 +12,15 @@ int speed;
 
 int blockWidth;
 int blockHeight;
-
+float[] arr = {-2.5,-2,-1,1,2,2.5};
 
 void setup() {
-  size(800, 800);
+  size(800, 600);
   stuff = new ArrayList();
   bombs = new ArrayList();
   
   score = 0;
-  lives = 3;
+  lives = 9;
   size = 80;
   speed = 40;
   blockWidth = 300;
@@ -56,7 +56,7 @@ void draw() {
   
   if (lives > -1) {
     timer += 1;
-    if( timer % 100 == 0 ) {
+    if( timer % 200 == 0 ) {
       stuff.add(new Entity());
       //maybe add more generation if timer is longer
     }
@@ -87,8 +87,10 @@ class Entity {
     //figure out what you want first
     //x = 80 * int(random(10));
     //y = 60 * int(random(10));
-    x = 8 * int(random(15, 85));
-    y = 6 * int(random(15, 85));
+    //x = 8 * int(random(15, 85));
+    //y = 6 * int(random(15, 85));
+    x = int(random(150,width-150));
+    y = int(random(150,height-150));
     live = true;
     lifespan = int(random(100));
   }
@@ -139,8 +141,12 @@ class Bomb {
   
   void randDir() {
     //run only after x and y are set
-    dirX = random(-4, 4);
-    dirY = random(-4, 4);
+    //dirX = random(-2, 2);
+    //dirY = random(-2, 2);
+    int idx = int(random(0,5));
+    int idx2 = int(random(0,5));
+    dirX = arr[idx];
+    dirY = arr[idx2];
   }
   
   void update() {
@@ -258,17 +264,21 @@ class Block {
   
   boolean checkCollision(float x1, float y1) {
     if (checkSide()) { //left and right
-      if ((abs(x1 - x) * 2 < (size/2 + blockHeight)) &&
+      /*if ((abs(x1 - x) * 2 < (size/2 + blockHeight)) &&
       (abs(y1 - y) * 2 < (size/2 + blockWidth) )) {
         return true;
-      }
+      }*/
+      return (abs(x1 - x) * 2 < (size/2 + blockHeight)) &&
+      (abs(y1 - y) * 2 < (size/2 + blockWidth) );
     } else {
-      if ((abs(x1 - x) * 2 < (size/2 + blockWidth)) &&
+      /*if ((abs(x1 - x) * 2 < (size/2 + blockWidth)) &&
       (abs(y1 - y) * 2 < (size/2 + blockHeight) )) {
         return true;
-      }
+      }*/
+      return (abs(x1 - x) * 2 < (size/2 + blockWidth)) &&
+      (abs(y1 - y) * 2 < (size/2 + blockHeight) );
     }
-    return false;
+    //return false;
   }
   
   boolean checkSide() {
