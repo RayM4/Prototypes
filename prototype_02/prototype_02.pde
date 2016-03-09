@@ -1,10 +1,18 @@
+Direction directions;
+
 ArrayList<Entity> stuff;
 ArrayList<Bomb> bombs;
+ArrayList<Block> blocks;
 int score;
 int lives;
 int timer;
 int size;
 int NUM_OF_BOMBS;
+int speed;
+
+int blockWidth;
+int blockHeight;
+
 
 void setup() {
   size(800, 800);
@@ -14,22 +22,36 @@ void setup() {
   score = 0;
   lives = 3;
   size = 80;
+  speed = 40;
+  blockWidth = 300;
+  blockHeight = 50;
   NUM_OF_BOMBS = 2;
+  //b = new Block(250, 0, directions.UP);
+  blocks = new ArrayList();
+  genPaddles();
+}
+
+void resetGame() {
+  score = 0;
+  lives = 3;
+  stuff = new ArrayList();
+  bombs = new ArrayList();
+  genPaddles();
 }
 
 void draw() {
+  clear(); //<>//
   background ( 11, 83, 131 );
+  
+  //b.display();
+  for (Block b : blocks) {
+    b.display();
+  }
   fill (0, 0, 0);
   textSize(30);
   text("Score: " + score, 10 , 50);
   text("Lives: " + lives, 10, 80);
-  fill(212, 11, 11); 
-  //goals?
-  rect(250, height-50, 300, height);
-  rect(250, 0, 300, 50);
-  
-  rect(0, 250, 50, 300);
-  rect(width-50, 250, width, 300);
+
   fill (32, 255, 20);
   
   if (lives > -1) {
@@ -52,6 +74,7 @@ void draw() {
   for (Bomb b : bombs) {
     b.update();
   }
+  
 }
 
 class Entity {
@@ -123,12 +146,14 @@ class Bomb {
   void update() {
     if (live) {
       //checks if offscreen and scores
-      if (scores()) {
+      //if (scores()) {
+      if(checkCollide()) {
         clear();
         score += 2;
       }
       else if (x < 0 || x > 800 || y < 0 || y > 800) {
         clear();
+        background(255,0,0);
         lives -= 1;
       } else {
         x += dirX;
@@ -166,6 +191,93 @@ class Bomb {
     }
     return false;
   }
+  
+  boolean checkCollide() {
+    for (Block b : blocks) {
+      if (b.checkCollision(x, y)) {
+        print("a");
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+class Block {
+  float x = 0;
+  float y = 0;
+  Direction p;
+  
+  Block() {
+    x = 0;
+    y = 0;
+    p = directions.STAY;
+  }
+  
+  Block(float x1, float y1, Direction d) {
+    x = x1;
+    y = y1;
+    p = d;
+  }
+  
+  void display() {
+    fill(212, 11, 11);
+    if (checkSide()) {
+      rect(x, y, blockHeight, blockWidth);
+    } else if (checkVertical()){
+      rect(x, y, blockWidth, blockHeight);
+    }
+  }
+  
+  void move(Direction d) {
+    if (d == directions.UP && checkSide() && y > 0) {
+      y -= speed;
+    } else if (d == directions.DOWN && checkSide() && y < (height-blockWidth)) {
+      y += speed;
+    } else if (d == directions.LEFT && checkVertical() && x > 0) {
+      x -= speed;
+    } else if (d == directions.RIGHT && checkVertical() && x < (width-blockWidth)) {
+      x += speed;
+    }
+  }
+  
+  /*boolean checkCollision(float x1, float y1) { //fix eventually
+    if (checkSide()) {
+      if (x1 > x-(blockHeight/2) && x1 < x+(blockHeight/2)
+        && y1 > y-(blockWidth/2) && y1 < y+(blockWidth/2)) {
+          return true;
+      }
+    } else {
+      if (x1 > x-(blockWidth/2) && x1 < x+(blockWidth/2)
+        && y1 > y-(blockHeight/2) && y1 < y+(blockHeight/2)) {
+          return true;
+        }
+    }
+    return false;
+  }*/
+  
+  boolean checkCollision(float x1, float y1) {
+    if (checkSide()) { //left and right
+      if ((abs(x1 - x) * 2 < (size/2 + blockHeight)) &&
+      (abs(y1 - y) * 2 < (size/2 + blockWidth) )) {
+        return true;
+      }
+    } else {
+      if ((abs(x1 - x) * 2 < (size/2 + blockWidth)) &&
+      (abs(y1 - y) * 2 < (size/2 + blockHeight) )) {
+        return true;
+      }
+    }
+    return false;
+  }
+  
+  boolean checkSide() {
+    return (p == directions.LEFT || p == directions.RIGHT);
+  }
+  
+  boolean checkVertical() {
+    return (p == directions.UP || p == directions.DOWN);
+  }
 }
 
 void mousePressed() {
@@ -175,4 +287,44 @@ void mousePressed() {
       score += 1;
     }
   }
+}
+
+void keyPressed() {
+  if(key == CODED) {
+    if(keyCode == LEFT) {
+      //blocks.get(0).move(directions.LEFT);
+      blocks.get(1).move(directions.LEFT);
+    } else if (keyCode == RIGHT) {
+      //blocks.get(0).move(directions.RIGHT);
+      blocks.get(1).move(directions.RIGHT);
+    } else if (keyCode == UP) {
+      //blocks.get(2).move(directions.UP);
+      blocks.get(3).move(directions.UP);
+    } else if (keyCode == DOWN) {
+      //blocks.get(2).move(directions.DOWN);
+      blocks.get(3).move(directions.DOWN);
+    }
+  } else if (key == 'w') {
+    blocks.get(2).move(directions.UP);
+  } else if (key == 'a') {
+    blocks.get(0).move(directions.LEFT);
+  } else if (key == 's') {
+    blocks.get(2).move(directions.DOWN);
+  } else if (key == 'd') {
+    blocks.get(0).move(directions.RIGHT);
+  } else if (key == 'r') {
+    resetGame();
+  }
+}
+
+void genPaddles() {
+  blocks = new ArrayList();
+  Block a = new Block(250, 0, directions.UP);
+  Block b = new Block(250, (height-blockHeight), directions.DOWN);
+  Block c = new Block(0, 250, directions.LEFT);
+  Block d = new Block((width-blockHeight), 250, directions.RIGHT);
+  blocks.add(a);
+  blocks.add(b);
+  blocks.add(c);
+  blocks.add(d);
 }
